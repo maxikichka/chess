@@ -23,6 +23,12 @@ insufficient material
 perpetual check
 '''
 
+def pieceHasMoved(turn, square):
+    for i in range(len(moves) - 1):
+        if giveArrayCoord(moves[i][turn][:2])[0] == square[0] and giveArrayCoord(moves[i][turn][:2])[1] == square[1]:
+            return True
+    return False
+
 def drawBoard():
     for i in range(len(board)):
         strToPrint = ""
@@ -85,10 +91,31 @@ def giveArrayCoord(coord):
     alphabet = "abcdefgh"
     return (8 - int(coord[1]), alphabet.find(coord[0]))
 
+def checkForEnPassant(kingCoordinates, destinationCoordinates, turn):
+    if turn == "w":
+        row = 7
+    else:
+        row = 0
+    if kingCoordinates[0] == row and kingCoordinates[1] == 4 and destinationCoordinates[0] == row and destinationCoordinates[1] == 6:
+        #if kingside castling
+        if board[row][4] == turn + "K" and board[row][5] == "0" and board[row][6] == "0" and board[row][7] == turn + "R":
+            if pieceHasMoved(turn, kingCoordinates) == False and pieceHasMoved(turn, (row, 7)) == False:
+                board[row][5] = turn + "R"
+                board[row][7] = "0"
+                return True
+    elif kingCoordinates[0] == row and kingCoordinates[1] == 4 and destinationCoordinates[0] == row and destinationCoordinates[1] == 2:
+        #if queenside castling
+        if board[row][4] == turn + "K" and board[row][3] == "0" and board[row][2] == "0" and board[row][1] == "0" and board[row][0] == turn + "R":
+            if pieceHasMoved(turn, kingCoordinates) == False and pieceHasMoved(turn, (row, 0)) == False:
+                board[row][3] = turn + "R"
+                board[row][0] = "0"
+                return True
+    return False
+
 def checkForMoveKing(kingCoordinates, destinationCoordinates, turn):
     if abs(kingCoordinates[0] - destinationCoordinates[0]) <= 1 and abs(kingCoordinates[1] - destinationCoordinates[1]) <= 1 and board[destinationCoordinates[0]][destinationCoordinates[1]][0] != turn:
         return True
-    return False
+    return checkForEnPassant(kingCoordinates, destinationCoordinates, turn)
 
 def checkForMoveQueen(queenCoordinates, destinationCoordinates, turn):
     #just rook and bishop combined
@@ -156,14 +183,6 @@ def checkForMovePawn(pawnCoordinates, destinationCoordinates, turn, purpose):
         elif pawnCoordinates[0] == 4 and giveArrayCoord(moves[-1]["w"][3:])[0] == 4 and abs(giveArrayCoord(moves[-1]["w"][3:])[1] - pawnCoordinates[1]) == 1 and giveArrayCoord(moves[-1]["w"][:2])[0] == 6:
             board[giveArrayCoord(moves[-1]["w"][3:])[0]][giveArrayCoord(moves[-1]["w"][3:])[1]] = "0"
             return True
-
-def parseKing(startCoords, endCoords, turn, goToSpot):
-    if abs(startCoords[0] - endCoords[0]) <= 1 and abs(startCoords[1] - endCoords[1]) <= 1 and board[endCoords[0]][endCoords[1]][0] != turn:
-        print("king move succesfull")
-        board[startCoords[0]][startCoords[1]] = "0"
-        board[endCoords[0]][endCoords[1]] = turn + "K"
-    else:
-        return "invalid move"
 
 def parseMove(move, turn):
     startCoords = giveArrayCoord(move[:2])
