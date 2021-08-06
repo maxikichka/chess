@@ -85,6 +85,11 @@ def giveArrayCoord(coord):
     alphabet = "abcdefgh"
     return (8 - int(coord[1]), alphabet.find(coord[0]))
 
+def checkForMoveKing(kingCoordinates, destinationCoordinates, turn):
+    if abs(kingCoordinates[0] - destinationCoordinates[0]) <= 1 and abs(kingCoordinates[1] - destinationCoordinates[1]) <= 1 and board[destinationCoordinates[0]][destinationCoordinates[1]][0] != turn:
+        return True
+    return False
+
 def checkForMoveQueen(queenCoordinates, destinationCoordinates, turn):
     #just rook and bishop combined
     if checkForMoveRook(queenCoordinates, destinationCoordinates, turn) == False:
@@ -181,8 +186,9 @@ def parseMove(move, turn):
         if checkForMoveQueen(startCoords, endCoords, turn) == True:
             return makeMove("Q", startCoords, endCoords, turn)
     elif piece == turn + "K":
-        if parseKing(startCoords, endCoords, turn, goToSpot) == "invalid move":
-            return "invalid move"
+        if checkForMoveKing(startCoords, endCoords, turn) == True:
+            return makeMove("K", startCoords, endCoords, turn)
+    return False
 
 def main():
     done = False
@@ -201,7 +207,10 @@ def main():
         if parseMove(move, turn) == False:
             print("invalid move")
             if turn == "w":
-                moves.remove(-1)
+                try:
+                    moves.remove(-1)
+                except ValueError:
+                    pass
             continue
 
         if turn == "w":
