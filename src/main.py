@@ -17,8 +17,23 @@ ways to draw:
 threefold repetition
 stalemate
 insufficient material
-perpetual check
 '''
+
+def checkForFiftyMoveRule():
+    if len(moves) - 49 <= 0:
+        return False
+    i = len(moves) - 1
+    while i > len(moves) - 49:
+        print(i)
+        try:
+            if moves[i]["w"]["piece"][-1] == "p" or moves[i]["w"]["goto"][0] != "0" or moves[i]["b"]["piece"][-1] == "p" or moves[i]["b"]["goto"][0] != "0":
+                return False
+        except IndexError:
+            return False
+        except KeyError:
+            pass
+        i -= 1
+    return True
 
 def tryToBlockCheck(kingCoordinates, checkingPieceCoordinates, turn):
     print(kingCoordinates, checkingPieceCoordinates)
@@ -36,7 +51,7 @@ def tryToBlockCheck(kingCoordinates, checkingPieceCoordinates, turn):
 
 def pieceHasMoved(turn, square):
     for i in range(len(moves) - 1):
-        if giveArrayCoord(moves[i][turn][:2])[0] == square[0] and giveArrayCoord(moves[i][turn][:2])[1] == square[1]:
+        if giveArrayCoord(moves[i][turn]["move"][:2])[0] == square[0] and giveArrayCoord(moves[i][turn]["move"][:2])[1] == square[1]:
             return True
     return False
 
@@ -60,6 +75,7 @@ def makeMove(piece, startCoords, endCoords, turn):
     board[endCoords[0]][endCoords[1]] = turn + piece
     #has to check for check 2 times, if they are in check and if opponent is in check
     if checkForCheck(getKingPos(turn), board, otherTurn[turn]) == False:
+        print(checkForFiftyMoveRule())
         if checkForCheck(getKingPos(otherTurn[turn]), board, turn) != False:
             print("check!!")
             #now check if checkmate
@@ -215,8 +231,8 @@ def checkForMovePawn(pawnCoordinates, destinationCoordinates, turn, purpose):
             return True
         elif pawnCoordinates[0] - 1 == destinationCoordinates[0] and (pawnCoordinates[1] + 1 == destinationCoordinates[1] or pawnCoordinates[1] - 1 == destinationCoordinates[1]) and board[destinationCoordinates[0]][destinationCoordinates[1]][0] == "b":
             return True
-        elif pawnCoordinates[0] == 3 and giveArrayCoord(moves[-2]["b"][3:])[0] == 3 and abs(giveArrayCoord(moves[-2]["b"][3:])[1] - pawnCoordinates[1]) == 1 and giveArrayCoord(moves[-2]["b"][:2])[0] == 1:
-            board[giveArrayCoord(moves[-2]["b"][3:])[0]][giveArrayCoord(moves[-2]["b"][3:])[1]] = "0"
+        elif pawnCoordinates[0] == 3 and giveArrayCoord(moves[-2]["b"]["move"][3:])[0] == 3 and abs(giveArrayCoord(moves[-2]["b"]["move"][3:])[1] - pawnCoordinates[1]) == 1 and giveArrayCoord(moves[-2]["b"]["move"][:2])[0] == 1:
+            board[giveArrayCoord(moves[-2]["b"]["move"][3:])[0]][giveArrayCoord(moves[-2]["b"]["move"][3:])[1]] = "0"
             return True
     else:
         if pawnCoordinates[0] + 1 == destinationCoordinates[0] and pawnCoordinates[1] == destinationCoordinates[1] and purpose == "move":
@@ -225,8 +241,8 @@ def checkForMovePawn(pawnCoordinates, destinationCoordinates, turn, purpose):
             return True
         elif pawnCoordinates[0] + 1 == destinationCoordinates[0] and (pawnCoordinates[1] + 1 == destinationCoordinates[1] or pawnCoordinates[1] - 1 == destinationCoordinates[1]) and board[destinationCoordinates[0]][destinationCoordinates[1]][0] == "w":
             return True
-        elif pawnCoordinates[0] == 4 and giveArrayCoord(moves[-1]["w"][3:])[0] == 4 and abs(giveArrayCoord(moves[-1]["w"][3:])[1] - pawnCoordinates[1]) == 1 and giveArrayCoord(moves[-1]["w"][:2])[0] == 6:
-            board[giveArrayCoord(moves[-1]["w"][3:])[0]][giveArrayCoord(moves[-1]["w"][3:])[1]] = "0"
+        elif pawnCoordinates[0] == 4 and giveArrayCoord(moves[-1]["w"]["move"][3:])[0] == 4 and abs(giveArrayCoord(moves[-1]["w"]["move"][3:])[1] - pawnCoordinates[1]) == 1 and giveArrayCoord(moves[-1]["w"]["move"][:2])[0] == 6:
+            board[giveArrayCoord(moves[-1]["w"]["move"][3:])[0]][giveArrayCoord(moves[-1]["w"]["move"][3:])[1]] = "0"
             return True
 
 def parseMove(move, turn):
@@ -234,6 +250,8 @@ def parseMove(move, turn):
     endCoords = giveArrayCoord(move[3:])
     piece = board[startCoords[0]][startCoords[1]]
     goToSpot = board[endCoords[0]][endCoords[1]]
+    moves[-1][turn]["piece"] = piece
+    moves[-1][turn]["goto"] = goToSpot
     if piece == turn + "p":
         if checkForMovePawn(startCoords, endCoords, turn, "move") == True:
             return makeMove("p", startCoords, endCoords, turn)
@@ -264,9 +282,9 @@ def main():
         move = input("Your move: ")
 
         if turn == "w":
-            moves.append({"w": move})
+            moves.append({"w": {"move": move}})
         else:
-            moves[-1]["b"] = move
+            moves[-1]["b"] = {"move": move}
 
         if parseMove(move, turn) == False:
             print("invalid move")
