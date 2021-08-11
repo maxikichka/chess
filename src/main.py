@@ -13,15 +13,26 @@ otherTurn = {"w": "b", "b": "w"}
 
 '''
 TODO:
-castling
-king move
-checkmate
 ways to draw:
 threefold repetition
 stalemate
 insufficient material
 perpetual check
 '''
+
+def tryToBlockCheck(kingCoordinates, checkingPieceCoordinates, turn):
+    print(kingCoordinates, checkingPieceCoordinates)
+    if kingCoordinates[0] == checkingPieceCoordinates[0] or kingCoordinates[1] == checkingPieceCoordinates[1]:
+        #rook
+        squares = checkForMoveRook(checkingPieceCoordinates, kingCoordinates, turn, True)
+        print(squares)
+        for i in range(len(squares)):
+            if checkForCheck(squares[i], board, turn) == False:
+                return False
+    else:
+        #bishop
+        return
+    return True
 
 def pieceHasMoved(turn, square):
     for i in range(len(moves) - 1):
@@ -47,42 +58,39 @@ def makeMove(piece, startCoords, endCoords, turn):
     originalSquare = board[endCoords[0]][endCoords[1]]
     board[startCoords[0]][startCoords[1]] = "0"
     board[endCoords[0]][endCoords[1]] = turn + piece
-    if checkForCheck(getKingPos(turn), board, turn) == False:
+    #has to check for check 2 times, if they are in check and if opponent is in check
+    if checkForCheck(getKingPos(turn), board, otherTurn[turn]) == False:
+        if checkForCheck(getKingPos(otherTurn[turn]), board, turn) != False:
+            print("check!!")
+            #now check if checkmate
+            if isCheckmate(getKingPos(otherTurn[turn]), turn) == True:
+                print("checkmate!!")
         return True
     board[startCoords[0]][startCoords[1]] = turn + piece
     board[endCoords[0]][endCoords[1]] = originalSquare
     return False
 
 def checkForCheck(kingCoords, tempBoard, turn):
-    whosChecking = otherTurn[turn]
+    whosChecking = turn
     for i in range(len(tempBoard)):
         for j in range(len(tempBoard[i])):
             if tempBoard[i][j] != "0":
                 if tempBoard[i][j] == whosChecking + "p":
                     if checkForMovePawn((i, j), kingCoords, whosChecking, "isCheck") == True:
-                        print("check!")
-                        check = turn
-                        return True
+                        return (i, j)
                 elif tempBoard[i][j] == whosChecking + "N":
                     if checkForMoveKnight((i, j), kingCoords, whosChecking) == True:
-                        print("check!")
-                        check = turn
-                        return True
+                        return (i, j)
                 elif tempBoard[i][j] == whosChecking + "B":
                     if checkForMoveBishop((i, j), kingCoords, whosChecking) == True:
-                        print("check!")
-                        check = turn
-                        return True
+                        return (i, j)
                 elif tempBoard[i][j] == whosChecking + "R":
-                    if checkForMoveRook((i, j), kingCoords, whosChecking) == True:
-                        print("check!")
-                        check = turn
-                        return True
+                    if checkForMoveRook((i, j), kingCoords, whosChecking, False) != False:
+                        #print("ROOK CHECK!!!")
+                        return (i, j)
                 elif tempBoard[i][j] == whosChecking + "Q":
                     if checkForMoveQueen((i, j), kingCoords, whosChecking) == True:
-                        print("check!")
-                        check = turn
-                        return True
+                        return (i, j)
     return False
 
 def getKingPos(turn):
@@ -90,6 +98,27 @@ def getKingPos(turn):
         for j in range(len(board[i])):
             if board[i][j] == turn + "K":
                 return (i, j)
+
+def isCheckmate(kingCoordinates, turn):
+    opts = [[-1, -1], [-1, 0], [-1, 1], [0, -1], [0, 1], [1, 1], [1, 0], [1, -1]]
+    #check if king can move out of check
+    for i in range(len(opts)):
+        if board[kingCoordinates[0] + opts[i][0]][kingCoordinates[1] + opts[i][1]] == "0":
+            if kingCoordinates[0] + opts[i][0] in range(0, 7) and kingCoordinates[1] + opts[i][1] in range(0, 7) and checkForCheck((kingCoordinates[0] + opts[i][0], kingCoordinates[1] + opts[i][1]), board, turn) == False and board[kingCoordinates[0] + opts[i][0]][kingCoordinates[1] + opts[i][1]][0] != turn:
+                print(board[kingCoordinates[0] + opts[i][0]][kingCoordinates[1] + opts[i][1]][0], turn)
+                print(kingCoordinates[0] + opts[i][0], kingCoordinates[1] + opts[i][1], False)
+                return False
+    print("cant move")
+    checkingPiece = checkForCheck(kingCoordinates, board, turn)
+    print(checkingPiece)
+    #check if checking piece can be taken
+    if checkForCheck(checkingPiece, board, otherTurn[turn]) != False: #replace kingCoords with square where checking piece is
+        return False
+    print("cant capture")
+    #now check through every square that can block checking piece
+    if tryToBlockCheck(kingCoordinates, checkingPiece, turn) == True:
+        return False
+    return True
 
 def checkForCastling(kingCoordinates, destinationCoordinates, turn):
     if turn == "w":
@@ -99,8 +128,8 @@ def checkForCastling(kingCoordinates, destinationCoordinates, turn):
     if kingCoordinates[0] == row and kingCoordinates[1] == 4 and destinationCoordinates[0] == row and destinationCoordinates[1] == 6:
         #if kingside castling
         if (board[row][4] == turn + "K" and
-            board[row][5] == "0" and checkForCheck((row, 5), board, turn) == False and
-            board[row][6] == "0" and checkForCheck((row, 6), board, turn) == False and
+            board[row][5] == "0" and checkForCheck((row, 5), board, otherTurn[turn]) == False and
+            board[row][6] == "0" and checkForCheck((row, 6), board, otherTurn[turn]) == False and
             board[row][7] == turn + "R"):
             
             if pieceHasMoved(turn, kingCoordinates) == False and pieceHasMoved(turn, (row, 7)) == False:
@@ -128,11 +157,12 @@ def checkForMoveKing(kingCoordinates, destinationCoordinates, turn):
 
 def checkForMoveQueen(queenCoordinates, destinationCoordinates, turn):
     #just rook and bishop combined
-    if checkForMoveRook(queenCoordinates, destinationCoordinates, turn) == False:
+    if checkForMoveRook(queenCoordinates, destinationCoordinates, turn, False) == False:
         return checkForMoveBishop(queenCoordinates, destinationCoordinates, turn)
     return True
 
-def checkForMoveRook(rookCoordinates, destinationCoordinates, turn):
+def checkForMoveRook(rookCoordinates, destinationCoordinates, turn, squareChecking):
+    squares = []
     if rookCoordinates[0] == destinationCoordinates[0]:
         sameI = 0
         diffI = 1
@@ -147,9 +177,15 @@ def checkForMoveRook(rookCoordinates, destinationCoordinates, turn):
 
     for i in range(start, end + 1):
         if i == end and board[destinationCoordinates[0]][destinationCoordinates[1]][0] != turn:
-            return True
-        if (sameI == 0 and board[rookCoordinates[sameI]][i] != "0") or (sameI == 1 and board[i][rookCoordinates[sameI]] != "0"):
-            return False
+            return squares
+        if sameI == 0:
+            squares.append([rookCoordinates[sameI], i])
+            if board[rookCoordinates[sameI]][i] != "0":
+                return False
+        else:
+            squares.append([i, rookCoordinates[sameI]])
+            if board[i][rookCoordinates[sameI]] != "0":
+                return False
 
 def checkForMoveBishop(bishopCoordinates, destinationCoordinates, turn):
     #first check if squares lineup diagonally
@@ -158,7 +194,7 @@ def checkForMoveBishop(bishopCoordinates, destinationCoordinates, turn):
     x = bishopCoordinates[0]
     y = bishopCoordinates[1]
     while True:
-        print(x, y)
+        #print(x, y)
         x += (bishopCoordinates[0] - destinationCoordinates[0]) // abs(bishopCoordinates[0] - destinationCoordinates[0]) * -1
         y += (bishopCoordinates[1] - destinationCoordinates[1]) // abs(bishopCoordinates[1] - destinationCoordinates[1]) * -1
         if (x, y) == (destinationCoordinates[0], destinationCoordinates[1]) and board[destinationCoordinates[0]][destinationCoordinates[1]][0] != turn:
@@ -208,7 +244,7 @@ def parseMove(move, turn):
         if checkForMoveBishop(startCoords, endCoords, turn) == True:
             return makeMove("B", startCoords, endCoords, turn)
     elif piece == turn + "R":
-        if checkForMoveRook(startCoords, endCoords, turn) == True:
+        if checkForMoveRook(startCoords, endCoords, turn, False) != False:
             return makeMove("R", startCoords, endCoords, turn)
     elif piece == turn + "Q":
         if checkForMoveQueen(startCoords, endCoords, turn) == True:
